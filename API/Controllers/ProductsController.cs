@@ -1,14 +1,12 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Infrastructure.Data;
 using Core.Entities;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Core.Interfaces;
 using Core.Specifications;
 using API.Dtos;
+using AutoMapper;
 
 namespace API.Controllers
 {
@@ -20,6 +18,7 @@ namespace API.Controllers
         private readonly IGenericRepository<ProductBrand> _productBrandRepo;
         private readonly IGenericRepository<ProductType> _productTypeRepo;
 
+        private readonly IMapper _mapper;
         //update the two methods to return data from the database
         //we need to inject our store context into product controller,by injecting that practicular class that will give us access to the methods in the class
         //we need to generate the constructor
@@ -40,8 +39,9 @@ namespace API.Controllers
        }
     */
         public ProductsController(IGenericRepository<Product> productsRepo,
-        IGenericRepository<ProductBrand> productBrandRepo, IGenericRepository<ProductType> productTypeRepo)
+        IGenericRepository<ProductBrand> productBrandRepo, IGenericRepository<ProductType> productTypeRepo, IMapper mapper)
         {
+            _mapper = mapper;
             _productTypeRepo = productTypeRepo;
             _productsRepo = productsRepo;
             _productBrandRepo = productBrandRepo;
@@ -52,23 +52,15 @@ namespace API.Controllers
         //we specifie the type what are we returning example List -we are returning a list,type is products 
         //this is what we are rturning it is gonna be an action result,some kind of http response stater  
         //we have control of what we return inside this method
-        public async Task<ActionResult<List<ProductToReturnDto>>> GetProducts()
+        public async Task<ActionResult<IReadOnlyList<ProductToReturnDto>>> GetProducts()
         {//   this is going to achieve the same thing that we did before, except it's going to run asynchronously 
          //and we're creating a task that's going to pass after our request to a delegate.
          //And it's not going to wait and block the threads that this is running on until that task is completed.
          //var products = await _context.Products.ToListAsync();//when we call this command  tolist this is gonna select the query in our data base and return the results and install them in the var
             var spec = new ProductsWithTypesAndBrandsSpecification();
             var products = await _productsRepo.ListAsync(spec);
-           return products.Select(product => new ProductToReturnDto{
-                Id = product.Id,
-                Name = product.Name,
-                Description = product.Description,
-                PictureUrl = product.PictureUrl,
-                Price = product.Price,
-                ProductBrand = product.ProductBrand.Name,
-                ProductType = product.ProductType.Name
-
-           }).ToList();
+            return Ok(_mapper
+            .Map<IReadOnlyList<Product>,IReadOnlyList<ProductToReturnDto>>(products));
 
         }
         [HttpGet("{id}")]
@@ -78,17 +70,7 @@ namespace API.Controllers
 
             var product = await _productsRepo.GetEntityWithSpec(spec);
 
-            return new ProductToReturnDto
-            {
-                Id = product.Id,
-                Name = product.Name,
-                Description = product.Description,
-                PictureUrl = product.PictureUrl,
-                Price = product.Price,
-                ProductBrand = product.ProductBrand.Name,
-                ProductType = product.ProductType.Name
-
-            };
+            return _mapper.Map<Product, ProductToReturnDto>(product);
         }
 
         [HttpGet("brands")]
