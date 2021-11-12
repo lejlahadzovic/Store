@@ -9,6 +9,7 @@ using API.Dtos;
 using AutoMapper;
 using API.Errors;
 using Microsoft.AspNetCore.Http;
+using API.Helpers;
 
 namespace API.Controllers
 {
@@ -47,26 +48,37 @@ namespace API.Controllers
             _productsRepo = productsRepo;
             _productBrandRepo = productBrandRepo;
         }
-        [HttpGet]
+
         //   public async Task<ActionResult<List<Product>>> GetProducts()
         //we've got ActionResult avaliable becouse we are using ControllerBase
         //we specifie the type what are we returning example List -we are returning a list,type is products 
         //this is what we are rturning it is gonna be an action result,some kind of http response stater  
         //we have control of what we return inside this method
-        public async Task<ActionResult<IReadOnlyList<ProductToReturnDto>>> GetProducts()
+        [HttpGet]
+        public async Task<ActionResult<Pagination<ProductToReturnDto>>> GetProducts(
+         [FromQuery] ProductSpecParams productParams)
         {//   this is going to achieve the same thing that we did before, except it's going to run asynchronously 
          //and we're creating a task that's going to pass after our request to a delegate.
          //And it's not going to wait and block the threads that this is running on until that task is completed.
          //var products = await _context.Products.ToListAsync();//when we call this command  tolist this is gonna select the query in our data base and return the results and install them in the var
-            var spec = new ProductsWithTypesAndBrandsSpecification();
+            var spec = new ProductsWithTypesAndBrandsSpecification(productParams);
+
+            var countSpec = new ProductsWithTypesAndBrandsSpecification(productParams);
+
+            var totalItems = await _productsRepo.CountAsync(countSpec);
+
             var products = await _productsRepo.ListAsync(spec);
-            return Ok(_mapper
-            .Map<IReadOnlyList<Product>, IReadOnlyList<ProductToReturnDto>>(products));
+
+            var data = _mapper
+            .Map<IReadOnlyList<Product>, IReadOnlyList<ProductToReturnDto>>(products);
+
+            return Ok(new Pagination<ProductToReturnDto>(productParams.PageIndex,
+            productParams.PageSize, totalItems, data));
 
         }
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse),StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ProductToReturnDto>> GetProduct(int id)
         {
             var spec = new ProductsWithTypesAndBrandsSpecification(id);

@@ -13,20 +13,23 @@ namespace Infrastructure.Data
     {
         private StoreContext _context;
 
-        public GenericRepository(StoreContext context){
-         _context=context;
-       }
-   public async Task<T> GetByIdAsync(int id){
-    return await _context.Set<T>().FindAsync(id);
+        public GenericRepository(StoreContext context)
+        {
+            _context = context;
+        }
+        public async Task<T> GetByIdAsync(int id)
+        {
+            return await _context.Set<T>().FindAsync(id);
 
-   }
+        }
 
-   
-  public async Task<IReadOnlyList<T>> ListAllAsync(){
-     return await _context.Set<T>().ToListAsync();
 
-   }
-     public async Task<T> GetEntityWithSpec(ISpecification<T> spec)
+        public async Task<IReadOnlyList<T>> ListAllAsync()
+        {
+            return await _context.Set<T>().ToListAsync();
+
+        }
+        public async Task<T> GetEntityWithSpec(ISpecification<T> spec)
         {
             return await ApplySpecification(spec).FirstOrDefaultAsync();
         }
@@ -35,11 +38,15 @@ namespace Infrastructure.Data
         {
             return await ApplySpecification(spec).ToListAsync();
         }
-
-        private IQueryable<T> ApplySpecification(ISpecification<T> spec)
-        { 
-                 return SpecificationEvaluator<T>.GetQuery(_context.Set<T>().AsQueryable(),spec);
+        public async Task<int> CountAsync(ISpecification<T> spec)
+        {
+            return await ApplySpecification(spec).CountAsync();
         }
- 
+        private IQueryable<T> ApplySpecification(ISpecification<T> spec)
+        {
+            return SpecificationEvaluator<T>.GetQuery(_context.Set<T>().AsQueryable(), spec);
+        }
+
+
     }
 }
